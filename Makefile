@@ -10,7 +10,7 @@ LDFLAGS += -lelf -lz
 
 all: loader xdpprog
 loader: libbpf $(objects)
-	clang $(LDFLAGS) -o xdpfw $(libbpf_static_objects) $(objects)
+	clang $(LDFLAGS) -o loader $(libbpf_static_objects) $(objects)
 xdpprog: src/xdp_prog.o
 	clang -D__BPF__ -Wall -Wextra -O2 -emit-llvm -c src/xdp_prog.c -o src/xdp_prog.bc
 	llc -march=bpf -filetype=obj src/xdp_prog.bc -o src/xdp_prog.o
@@ -19,6 +19,6 @@ libbpf:
 clean:
 	$(MAKE) -C libbpf/src clean
 	rm -f src/*.o src/*.bc
-	rm -f xdpfw_loader
+	rm -f loader
 .PHONY: libbpf all
 .DEFAULT: all
