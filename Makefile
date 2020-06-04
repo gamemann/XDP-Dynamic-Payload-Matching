@@ -9,7 +9,7 @@ libbpf_static_objects += libbpf/src/staticobjs/hashmap.o libbpf/src/staticobjs/b
 LDFLAGS += -lelf -lz
 
 all: loader xdpprog
-xdpfw_loader: libbpf $(objects)
+loader: libbpf $(objects)
 	clang $(LDFLAGS) -o xdpfw $(libbpf_static_objects) $(objects)
 xdpprog: src/xdp_prog.o
 	clang -D__BPF__ -Wall -Wextra -O2 -emit-llvm -c src/xdp_prog.c -o src/xdp_prog.bc
