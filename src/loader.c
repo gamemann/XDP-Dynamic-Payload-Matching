@@ -15,7 +15,8 @@
 #include "common.h"
 
 #define PAYLOAD "FF FF 50 60 AE"
-#define SECTION "plain"
+#define SECTION "xdp_methodfour"
+#define PROGRAM "src/xdp_methodfour.o"
 
 static int cont = 1;
 const char *dev = "ens18";
@@ -46,7 +47,6 @@ int find_map_fd(struct bpf_object *bpf_obj, const char *mapname)
     out:
         return fd;
 }
-
 
 struct bpf_object *load_bpf_object_file__simple(const char *filename)
 {
@@ -167,8 +167,9 @@ int main(int argc, char **argv)
     xdp_detach(ifidx, xdp_flags);
 
     struct bpf_map *map;
+    struct bpf_map *length_map;
 
-    bpf_obj = load_bpf_object_file__simple("src/xdp_prog.o");
+    bpf_obj = load_bpf_object_file__simple(PROGRAM);
 
     if (!bpf_obj) 
     {
@@ -202,22 +203,83 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    struct payload entry;
-    char str[MAX_PAYLOAD_LENGTH];
-
-    strcpy(str, PAYLOAD);
-
-    char *ptr = strtok(str, " ");
-
-    int i = 0;
-
-    while (ptr != NULL)
+    if (strcmp(SECTION, "xdp_methodthree") == 0)
     {
-        sscanf(ptr, "%2hhx", &entry.payload[i]);
-        ptr = strtok(NULL, " ");
+        char str[MAX_PAYLOAD_LENGTH];
 
-        entry.length++;
-        i++;
+        strcpy(str, PAYLOAD);
+
+        char *ptr = strtok(str, " ");
+
+        int i = 0;
+
+        while (ptr != NULL)
+        {
+            uint8_t key;
+            sscanf(ptr, "%2hhx", &key);
+
+            uint8_t val = 1;
+            ptr = strtok(NULL, " ");
+
+            i++;
+            
+            bpf_map_update_elem(payload_map_fd, &key, &val, BPF_ANY);
+        }
+    }
+    else if (strcmp(SECTION, "xdp_methodfour") == 0)
+    {
+        char str[MAX_PAYLOAD_LENGTH];
+
+        strcpy(str, PAYLOAD);
+
+        char *ptr = strtok(str, " ");
+
+        int i = 0;
+
+        uint8_t key[MAX_PAYLOAD_LENGTH];
+        uint8_t val = 1;
+
+        while (ptr != NULL)
+        {
+            sscanf(ptr, "%2hhx", &key[i]);
+            ptr = strtok(NULL, " ");
+            i++;
+        }
+
+        bpf_map_update_elem(payload_map_fd, &key, &val, BPF_ANY);
+
+        length_map = bpf_object__find_map_by_name(bpf_obj, "payload_length");
+        int length_fd = bpf_map__fd(length_map);
+
+        if (length_fd)
+        {
+            uint8_t key = 0;
+
+            bpf_map_update_elem(length_fd, &key, &i, BPF_ANY);
+        }
+    }
+    else
+    {
+        uint32_t key = 0;
+        struct payload entry;
+        char str[MAX_PAYLOAD_LENGTH];
+
+        strcpy(str, PAYLOAD);
+
+        char *ptr = strtok(str, " ");
+
+        int i = 0;
+
+        while (ptr != NULL)
+        {
+            sscanf(ptr, "%2hhx", &entry.payload[i]);
+            ptr = strtok(NULL, " ");
+
+            entry.length++;
+            i++;
+        }
+
+        bpf_map_update_elem(payload_map_fd, &key, &entry, BPF_ANY);
     }
 
     fprintf(stdout, "Starting XDP program and updated maps...\n");
