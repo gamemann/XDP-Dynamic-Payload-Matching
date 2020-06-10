@@ -93,10 +93,18 @@ if (!(pcktData + (len + 1) > (uint8_t *)data_end))
 }
 ```
 
-This results in the following error:
+The XDP program compiles without any issues. However, when attempting to run, results in the following error:
 
 ```
 72: (85) call bpf_map_lookup_elem#1
 invalid stack type R2 off=-16 access_size=150
 processed 63 insns (limit 1000000) max_states_per_insn 0 total_states 3 peak_states 3 mark_read 3
 ```
+
+This error occurs on this line:
+
+```C
+uint8_t *match = bpf_map_lookup_elem(&payload_map, &hashkey);
+```
+
+I'm unsure what the issue is, though.
