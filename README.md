@@ -71,26 +71,26 @@ memcpy(&hashkey, pcktData, *len);
 If we use a static length such as 10 bytes:
 
 ```C
-    uint32_t key = 0;
-    //uint8_t *len = bpf_map_lookup_elem(&payload_length, &key);
-    uint8_t len = 10;
-    uint8_t *pcktData = data + sizeof(struct ethhdr) + (iph->ihl * 4) + l4len;
+uint32_t key = 0;
+//uint8_t *len = bpf_map_lookup_elem(&payload_length, &key);
+uint8_t len = 10;
+uint8_t *pcktData = data + sizeof(struct ethhdr) + (iph->ihl * 4) + l4len;
 
-    if (!(pcktData + (len + 1) > (uint8_t *)data_end))
+if (!(pcktData + (len + 1) > (uint8_t *)data_end))
+{
+    uint8_t hashkey[10]; // Using `len` as the size also results in a compilation error. We'd have to use a pointer instead and dynamically allocate space to it via `malloc()` or something similar more than likely.
+
+    memcpy(&hashkey, pcktData, len);
+    
+    uint8_t *match = bpf_map_lookup_elem(&payload_map, &hashkey);
+
+    if (match)
     {
-        uint8_t hashkey[10]; // Using `len` as the size also results in a compilation error. We'd have to use a pointer instead and dynamically allocate space to it via `malloc()` or something similar more than likely.
+        printk("Dropping matched packet.\n");
 
-        memcpy(&hashkey, pcktData, len);
-        
-        uint8_t *match = bpf_map_lookup_elem(&payload_map, &hashkey);
-
-        if (match)
-        {
-            printk("Dropping matched packet.\n");
-
-            goto drop;
-        }
+        goto drop;
     }
+}
 ```
 
 This results in the following error:
