@@ -93,13 +93,12 @@ int xdp_prog(struct xdp_md *ctx)
     if (len)
     {
         uint8_t *pcktData = data + sizeof(struct ethhdr) + (iph->ihl * 4) + l4len;
-        uint8_t length = MAX_PAYLOAD_LENGTH;
 
-        if (!(pcktData + (length + 1) > (uint8_t *)data_end))
+        if (!(pcktData + (*len + 1) > (uint8_t *)data_end))
         {
-            uint8_t hashkey[MAX_PAYLOAD_LENGTH];
+            uint8_t hashkey[*len];
 
-            memcpy(&hashkey, pcktData, length);
+            memcpy(&hashkey, pcktData, *len);
             
             uint8_t *match = bpf_map_lookup_elem(&payload_map, &hashkey);
 
