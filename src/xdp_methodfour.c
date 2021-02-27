@@ -86,7 +86,7 @@ int xdp_prog(struct xdp_md *ctx)
                 break;
             }
 
-            memcpy(hashkey + i, pcktdata + i, 1);
+            hashkey[i] = *(pcktdata + i);
         }
         
         uint8_t *match = bpf_map_lookup_elem(&payload_map, &hashkey);
