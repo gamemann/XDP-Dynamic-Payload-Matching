@@ -12,11 +12,6 @@
 #include "helpers.h"
 #include "common.h"
 
-#ifdef MAX_PAYLOAD_LENGTH
-#undef MAX_PAYLOAD_LENGTH
-#define MAX_PAYLOAD_LENGTH 150
-#endif
-
 struct bpf_map_def SEC("maps") payload_map = 
 {
     .type = BPF_MAP_TYPE_HASH,
@@ -64,13 +59,6 @@ int xdp_prog(struct xdp_md *ctx)
         return XDP_DROP;
     }
 
-    if (unlikely(iph->protocol != IPPROTO_TCP && iph->protocol != IPPROTO_UDP))
-    {
-        return XDP_DROP;
-    }
-
-    uint16_t l4len = 0;
-
     if (iph->protocol == IPPROTO_TCP)
     {
         struct tcphdr *tcph = data + sizeof(struct ethhdr) + (iph->ihl * 4);
@@ -80,42 +68,31 @@ int xdp_prog(struct xdp_md *ctx)
             return XDP_DROP;
         }
 
-        l4len = tcph->doff * 4;
-    }
-    else
-    {
-        l4len = 8;
-    }
+        uint16_t l4len = tcph->doff * 4;
 
-    uint32_t key = 0;
-    uint8_t *len = bpf_map_lookup_elem(&payload_length, &key);
+        uint8_t *pcktdata = data + sizeof(struct ethhdr) + (iph->ihl * 4) + l4len;
 
-    if (len)
-    {
-        uint8_t *pcktData = data + sizeof(struct ethhdr) + (iph->ihl * 4) + l4len;
+        uint8_t hashkey[MAX_PAYLOAD_LENGTH];
 
-        if (!(pcktData + (*len + 1) > (uint8_t *)data_end))
+        for (int i = 0; i < MAX_PAYLOAD_LENGTH; i++)
         {
-            uint8_t hashkey[*len];
-
-            memcpy(&hashkey, pcktData, *len);
-            
-            uint8_t *match = bpf_map_lookup_elem(&payload_map, &hashkey);
-
-            if (match)
+            if (pcktdata + (i + 1) > (uint8_t *)data_end)
             {
-                printk("Dropping matched packet.\n");
-
-                goto drop;
+                return XDP_PASS;
             }
+
+            memcpy(hashkey + i, pcktdata + i, 1);
+        }
+        
+        uint8_t *match = bpf_map_lookup_elem(&payload_map, &hashkey);
+
+        if (match)
+        {
+            printk("Dropping matched packet.\n");
         }
     }
 
     return XDP_PASS;
-
-    drop:
-
-    return XDP_DROP;
 }
 
 char _license[] SEC("license") = "GPL";
