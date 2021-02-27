@@ -77,16 +77,14 @@ int xdp_prog(struct xdp_md *ctx)
 
         uint8_t *pcktdata = data + sizeof(struct ethhdr) + (iph->ihl * 4) + l4len;
 
-        uint8_t hashkey[MAX_PAYLOAD_LENGTH];
+        uint8_t hashkey[MAX_PAYLOAD_LENGTH] = {0};
 
         for (int i = 0; i < MAX_PAYLOAD_LENGTH; i++)
         {
             if (pcktdata + (i + 1) > (uint8_t *)data_end)
             {
-                return XDP_PASS;
+                break;
             }
-
-            printk("Matched packet against %d", i);
 
             memcpy(hashkey + i, pcktdata + i, 1);
         }

@@ -236,7 +236,7 @@ int main(int argc, char **argv)
 
         int i = 0;
 
-        uint8_t key[MAX_PAYLOAD_LENGTH];
+        uint8_t key[MAX_PAYLOAD_LENGTH] = {0};
         uint8_t val = 1;
 
         while (ptr != NULL)
