@@ -1,6 +1,6 @@
 #include <inttypes.h>
 
-#define MAX_PAYLOAD_LENGTH 1500
+#define MAX_PAYLOAD_LENGTH 12
 
 struct payload
 {
