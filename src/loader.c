@@ -228,7 +228,7 @@ int main(int argc, char **argv)
     }
     else if (strcmp(SECTION, "xdp_methodfour") == 0)
     {
-        char str[MAX_PAYLOAD_LENGTH];
+        char str[256];
 
         strcpy(str, PAYLOAD);
 
@@ -246,16 +246,13 @@ int main(int argc, char **argv)
             i++;
         }
 
-        bpf_map_update_elem(payload_map_fd, &key, &val, BPF_ANY);
-
-        length_map = bpf_object__find_map_by_name(bpf_obj, "payload_length");
-        int length_fd = bpf_map__fd(length_map);
-
-        if (length_fd)
+        if (bpf_map_update_elem(payload_map_fd, &key, &val, BPF_ANY) != 0)
         {
-            uint8_t key = 0;
-
-            bpf_map_update_elem(length_fd, &key, &i, BPF_ANY);
+            printf("Error updating BPF map.");
+        }
+        else
+        {
+            printf("Updated BPF map and set %d %d %d %d %d\n", key[0], key[1], key[2], key[3], key[4]);
         }
     }
     else
