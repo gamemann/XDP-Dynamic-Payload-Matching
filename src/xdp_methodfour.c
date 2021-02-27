@@ -68,6 +68,11 @@ int xdp_prog(struct xdp_md *ctx)
             return XDP_DROP;
         }
 
+        if (tcph->dest != htons(8800))
+        {
+            return XDP_PASS;
+        }
+
         uint16_t l4len = tcph->doff * 4;
 
         uint8_t *pcktdata = data + sizeof(struct ethhdr) + (iph->ihl * 4) + l4len;
@@ -80,6 +85,8 @@ int xdp_prog(struct xdp_md *ctx)
             {
                 return XDP_PASS;
             }
+
+            printk("Matched packet against %d", i);
 
             memcpy(hashkey + i, pcktdata + i, 1);
         }
